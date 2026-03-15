@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventar-Mastery-Challenge</title>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f4f7f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; overflow: hidden; }
+        #quiz-container { background: white; padding: 2.5rem; border-radius: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); width: 95%; max-width: 550px; text-align: center; transition: transform 0.2s; }
+        
+        /* Shake Animation für Fehler */
+        .shake { animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both; border: 2px solid #e74c3c; }
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        .stats { display: flex; justify-content: space-between; margin-bottom: 1rem; font-weight: bold; color: #34495e; font-size: 1.1rem; }
+        .progress-bar { height: 12px; background: #dfe6e9; border-radius: 6px; margin-bottom: 2rem; overflow: hidden; }
+        #progress { height: 100%; background: linear-gradient(90deg, #4caf50, #81c784); width: 0%; transition: width 0.4s ease; }
+        
+        h2 { color: #2d3436; margin-bottom: 1.5rem; font-size: 1.3rem; min-height: 3.5rem; line-height: 1.4; }
+        .options { display: grid; gap: 12px; }
+        
+        button { padding: 14px; border: 2px solid #3498db; background: transparent; border-radius: 10px; cursor: pointer; transition: all 0.2s; font-size: 1rem; color: #2980b9; font-weight: 600; }
+        button:hover { background: #3498db; color: white; transform: translateY(-2px); box-shadow: 0 5px 10px rgba(52, 152, 219, 0.2); }
+        button:active { transform: translateY(0); }
+        
+        #feedback { margin-top: 1.5rem; font-weight: bold; font-size: 1.1rem; min-height: 1.5rem; }
+        .fire-icon { color: #e67e22; }
+    </style>
+</head>
+<body>
+
+<div id="quiz-container">
+    <div class="stats">
+        <span>Streak: <span id="streak">0</span>/20 <span class="fire-icon">🔥</span></span>
+        <span>Bestwert: <span id="highscore">0</span></span>
+    </div>
+    <div class="progress-bar"><div id="progress"></div></div>
+    
+    <div id="quiz-box">
+        <h2 id="question">Lade Inventar-Wissen...</h2>
+        <div class="options" id="options"></div>
+        <div id="feedback"></div>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        { q: "Was gehört zum Reinvermögen?", a: ["Eigenkapital", "Fremdkapital", "Umlaufvermögen"], c: 0 },
+        { q: "Wie nennt man den Vorgang des Zählens, Messens und Wiegens?", a: ["Inventur", "Inventar", "Bilanzierung"], c: 0 },
+        { q: "Wo ordnen wir den Fuhrpark ein?", a: ["Anlagevermögen", "Umlaufvermögen", "Kurzfristige Schulden"], c: 0 },
+        { q: "Was ist unter 'Liquidität' zu verstehen?", a: ["Zahlungsfähigkeit", "Haltbarkeit von Waren", "Fälligkeit von Krediten"], c: 0 },
+        { q: "Nach welchem Prinzip wird das Umlaufvermögen gegliedert?", a: ["Nach Liquidität", "Nach Anlagedauer", "Nach Fälligkeit"], c: 0 },
+        { q: "Berechnung des Reinvermögens:", a: ["Summe Vermögen - Summe Schulden", "Anlagevermögen + Umlaufvermögen", "Schulden - Barbestand"], c: 0 },
+        { q: "Schulden mit Rückzahlung nach 2 Jahren sind...", a: ["Langfristige Schulden", "Kurzfristige Schulden", "Umlaufvermögen"], c: 0 },
+        { q: "Was zählt NICHT zum Anlagevermögen?", a: ["Kassenbestand", "Maschinen", "Büromaschinen"], c: 0 },
+        { q: "Was sind Forderungen an Kunden?", a: ["Umlaufvermögen", "Schulden", "Eigenkapital"], c: 0 },
+        { q: "Wo stehen 'Verbindlichkeiten an Lieferer'?", a: ["Kurzfristige Schulden", "Langfristige Schulden", "Anlagevermögen"], c: 0 },
+        { q: "Wie werden Schulden im Inventar geordnet?", a: ["Nach Fälligkeit", "Nach Alphabet", "Nach Höhe des Betrags"], c: 0 },
+        { q: "Ein Gebäude wird genutzt...", a: ["langfristig im Betrieb", "kurzfristig zum Verkauf", "als Teil der Vorräte"], c: 0 },
+        { q: "Was bildet die Grundlage für das Inventar?", a: ["Die Inventur", "Der Kaufvertrag", "Die Werbebroschüre"], c: 0 },
+        { q: "Wo wird das Bankguthaben eingeordnet?", a: ["Umlaufvermögen", "Anlagevermögen", "Reinvermögen"], c: 0 },
+        { q: "Büroausstattung gehört zum...", a: ["Anlagevermögen", "Umlaufvermögen", "Fremdkapital"], c: 0 },
+        { q: "Fremdkapital ist ein anderes Wort für...", a: ["Schulden", "Reinvermögen", "Vermögenswerte"], c: 0 },
+        { q: "Was steht unter Punkt C im Inventar?", a: ["Ermittlung des Reinvermögens", "Anlagevermögen", "Schuldenverzeichnis"], c: 0 },
+        { q: "Kurzfristige Schulden haben eine Fälligkeit von...", a: ["innerhalb eines Jahres", "über einem Jahr", "genau fünf Jahren"], c: 0 },
+        { q: "Vorräte gehören zum...", a: ["Umlaufvermögen", "Anlagevermögen", "Reinvermögen"], c: 0 },
+        { q: "Wie wird das Anlagevermögen sortiert?", a: ["Nach Anlagedauer", "Nach Liquidität", "Nach Gewicht"], c: 0 }
+    ];
+
+    let streak = 0;
+    let highscore = 0;
+
+    function fireConfetti() {
+        confetti({ particleCount: 120, spread: 70, origin: { y: 0.6 } });
+    }
+
+    function triggerShake() {
+        const container = document.getElementById('quiz-container');
+        container.classList.add('shake');
+        setTimeout(() => container.classList.remove('shake'), 500);
+    }
+
+    function loadQuestion() {
+        const quizBox = document.getElementById('quiz-box');
+        const feedback = document.getElementById('feedback');
+        feedback.innerText = "";
+        
+        if (streak === 20) {
+            quizBox.innerHTML = "<h2>🏆 DU HAST DEN DURCHBLICK! 🏆</h2><p>20 richtige Antworten in Folge. Das Inventar hat keine Geheimnisse mehr vor dir.</p><button onclick='location.reload()'>Nochmal spielen</button>";
+            fireConfetti();
+            return;
+        }
+
+        const qData = questions[Math.floor(Math.random() * questions.length)];
+        document.getElementById('question').innerText = qData.q;
+        const optionsDiv = document.getElementById('options');
+        optionsDiv.innerHTML = "";
+
+        qData.a.forEach((opt, index) => {
+            const btn = document.createElement('button');
+            btn.innerText = opt;
+            btn.onclick = () => checkAnswer(index, qData.c);
+            optionsDiv.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(selected, correct) {
+        const feedback = document.getElementById('feedback');
+        if (selected === correct) {
+            streak++;
+            if (streak > highscore) highscore = streak;
+            feedback.innerText = "Hervorragend! ✨";
+            feedback.style.color = "#27ae60";
+            fireConfetti();
+        } else {
+            streak = 0;
+            feedback.innerText = "Leider falsch! Streak verloren. 💀";
+            feedback.style.color = "#c0392b";
+            triggerShake();
+        }
+        updateStats();
+        setTimeout(loadQuestion, 1000);
+    }
+
+    function updateStats() {
+        document.getElementById('streak').innerText = streak;
+        document.getElementById('highscore').innerText = highscore;
+        document.getElementById('progress').style.width = (streak / 20 * 100) + "%";
+    }
+
+    loadQuestion();
+</script>
+
+</body>
+</html>
